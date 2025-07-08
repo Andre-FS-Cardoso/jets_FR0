@@ -39,37 +39,45 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-static double Profile(double r, int nv);
+static double Profile(double x1, double x2, double x3, int nv);
 static void GetJetValues (double *vjet, double x1, double x2, double x3);
 
 /* ********************************************************************* */
 void Init (double *v, double x1, double x2, double x3)
 {
-  //double x1; // Em coordenadas cilíndricas, x1 é r.
-  //double x2; // Em coordenadas cilíndricas, x2 é z.
-  double R;
-  R = sqrt(x1 * x1 + x2 * x2);
-
+  double R, r;
+  R = sqrt(x1*x1 + x2*x2 + x3*x3);
+  r = sqrt(x1*x1 + x2*x2); 
+  
   double lor;
   lor = 1 / sqrt(1 - pow(g_inputParam[BETA], 2.0));
-  if (x1 / x2 <= 0.2) {
-    v[VX1] = sqrt(1 - 1 / pow(lor, 2.0)) * (x1 / R);
-    v[VX2] = sqrt(1 - 1 / pow(lor, 2.0)) * (x2 / R);
-    v[VX3] = 0.0;
 
-    v[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -2.0);
-    v[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -2.0*5.0/3.0);
+  double vz, vr;
+  vr = sqrt(1 - 1 / pow(lor, 2.0)) * (r / R);
+  vz = sqrt(1 - 1 / pow(lor, 2.0)) * (x3 / R);
+  
+  if (atan(r / x3) <= 0.2) {
+    
+    v[VX1] = vr*(x1 / r);
+    v[VX2] = vr*(x2 / r);
+    v[VX3] = vz;
+
+    v[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -0.75);
+    v[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -1.25);
   } else {
     v[VX1] = 0.0;
     v[VX2] = 0.0;
     v[VX3] = 0.0;
 
-    v[RHO] = g_inputParam[RHO_OUT] * pow(x2 / 1.0, -0.5);
-    v[PRS] = g_inputParam[PRESS_OUT] * pow(x2 / 1.0, -0.5);
+    v[RHO] = g_inputParam[RHO_OUT] * pow(x3 / 1.0, -0.5);
+    v[PRS] = g_inputParam[PRESS_OUT] * pow(x3 / 1.0, -0.5);
   }
-  
-}
 
+  #if NTRACER > 0
+  v[TRC] = 0.0;
+  #endif
+
+}
 
 /* ********************************************************************* */
 void InitDomain (Data *d, Grid *grid)
@@ -94,82 +102,93 @@ void Analysis (const Data *d, Grid *grid)
 
 }
 /* ********************************************************************* */
-void UserDefBoundary(const Data *d, RBox *box, int side, Grid *grid) 
+void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid) 
+/*
+ *
+ *
+ *********************************************************************** */
 {
-  int nv, i, j, k;
-  double r, z, vjet[NVAR], vout[NVAR];
+  int   nv, i, j, k;
+  double  r, z, vjet[NVAR], vout[NVAR];
   double x1, x2, x3;
 
-  #if GEOMETRY == CYLINDRICAL
+  r = sqrt(x1*x1 + x2*x2); 
 
-  // Tratando a fronteira inferior de Z (X2_BEG)
-  if (side == X2_BEG) { // Limite inferior em Z
+  #if GEOMETRY == CYLINDRICAL || GEOMETRY == CARTESIAN
 
-    
+  if (side == X2_BEG) {
 
     X2_BEG_LOOP(k, j, i) {
 
-      x1 = grid->x[IDIR][i]; // r
-      x2 = grid->x[JDIR][j]; // z
+      x1 = grid->x[IDIR][i];
+      x2 = grid->x[JDIR][j];
       x3 = grid->x[KDIR][k];
-      r = grid->x[IDIR][i];
 
-      //R = sqrt(x1 * x1 + x2 * x2);
+      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2 * JBEG - j - 1][i];
 
-      //printf("PARA X2: r = %f, z = %f\n", r, z);
-
-      if (x1 / x2 <= 0.2) { // Dentro do cone
-        GetJetValues(vjet, x1, x2, x3);
-        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vjet[nv];
-      } else { // Fora do cone, aplica valores do ambiente
-        NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2 * JBEG - j - 1][i];
-        vout[VX2] *= -1.0;
-        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv] + (vjet[nv] - vout[nv])*Profile(r,nv);
+      if (atan(r / x3) <= 0.2) {
+	GetJetValues(vjet, x1, x2, x3);
+	NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv] + (vjet[nv] - vout[nv])*Profile(x1,x2,x3,nv);
       }
+
     }
   }
-
   #endif
 }
-
-
-
 
 /* ********************************************************************* */
 void GetJetValues (double *vjet, double x1, double x2, double x3)
 {
-  //double x1; // Em coordenadas cilíndricas, x1 é r.
-  //double x2; // Em coordenadas cilíndricas, x2 é z.
-  double R;
-  R = sqrt(x1 * x1 + x2 * x2);
 
+  double R, r;
+  R = sqrt(x1*x1 + x2*x2 + x3*x3);
+  r = sqrt(x1*x1 + x2*x2); 
+  
   double lor;
   lor = 1 / sqrt(1 - pow(g_inputParam[BETA], 2.0));
 
-  vjet[VX1] = sqrt(1 - 1 / pow(lor, 2.0)) * (x1 / R);
-  vjet[VX2] = sqrt(1 - 1 / pow(lor, 2.0)) * (x2 / R);
-  vjet[VX3] = 0.0;
+  double vz, vr;
+  vr = sqrt(1 - 1 / pow(lor, 2.0)) * (r / R);
+  vz = sqrt(1 - 1 / pow(lor, 2.0)) * (x3 / R);
 
-  vjet[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -2.0);
-  vjet[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -2.0*5.0/3.0);
+  vjet[VX1] = vr*(x1 / r);
+  vjet[VX2] = vr*(x2 / r);
+  vjet[VX3] = vz;
 
+  vjet[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -0.75);
+  vjet[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -1.25);
+
+  #if NTRACER > 0
+  vjet[TRC] = 1.0;
+  #endif
+  
 }
-
  
 /* ********************************************************************* */
-double Profile(double r, int nv)
+double Profile(double x1, double x2, double x3, int nv)
 /* 
  *
  *
  *********************************************************************** */
 {
-  int xn = 14;
-  double r0 = 1.0;
+  double aq;
+  double theta_q;
+  
+  double r;
+  r = sqrt(x1*x1 + x2*x2);
 
-  if (nv == RHO) r0 = 1.1;
+  if (nv == RHO) {
+    theta_q = 0.29;
+    aq = 10.0;
+  }
+  if (nv == PRS) {
+    theta_q = 0.29;
+    aq = 10.0;
+  }
+  if (nv == VX1 || VX2) {
+    theta_q = 0.16;
+    aq = 8.0;
+  }
 
-  #if GEOMETRY == SPHERICAL
-   r0 = 5.0/180.0*CONST_PI;
-  #endif
-  return 1.0/cosh(pow(r/r0,xn));
+  return 1.0/cosh(pow(r / (x3 * theta_q), aq));
 }
