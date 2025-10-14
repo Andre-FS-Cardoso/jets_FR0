@@ -31,7 +31,7 @@
 #define  EPS_PSHOCK_FLATTEN             2.5
 #define  ARTIFICIAL_VISC                0.1
 #define  UNIT_DENSITY                   CONST_mp
-#define  UNIT_LENGTH                    CONST_pc
+#define  UNIT_LENGTH                    0.5*CONST_pc
 #define  UNIT_VELOCITY                  CONST_c
 
 /* [End] user-defined constants (do not change this line) */
