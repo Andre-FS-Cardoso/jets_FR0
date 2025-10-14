@@ -62,15 +62,15 @@ void Init (double *v, double x1, double x2, double x3)
     v[VX2] = vr*(x2 / r);
     v[VX3] = vz;
 
-    v[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -0.75);
-    v[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -1.25);
+    v[RHO] = g_inputParam[RHO_IN] * pow(R / 0.5, -2.0);
+    v[PRS] = g_inputParam[PRESS_IN] * pow(R / 0.5, -2.0*5.0/3.0);
   } else {
     v[VX1] = 0.0;
     v[VX2] = 0.0;
     v[VX3] = 0.0;
 
-    v[RHO] = g_inputParam[RHO_OUT] * pow(x3 / 1.0, -0.5);
-    v[PRS] = g_inputParam[PRESS_OUT] * pow(x3 / 1.0, -0.5);
+    v[RHO] = g_inputParam[RHO_OUT] * pow(x3 / 0.5, -0.5);
+    v[PRS] = g_inputParam[PRESS_OUT] * pow(x3 / 0.5, -0.5);
   }
 
   #if NTRACER > 0
@@ -116,15 +116,15 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
   #if GEOMETRY == CYLINDRICAL || GEOMETRY == CARTESIAN
 
-  if (side == X2_BEG) {
+  if (side == X3_BEG) {
 
-    X2_BEG_LOOP(k, j, i) {
+    X3_BEG_LOOP(k, j, i) {
 
       x1 = grid->x[IDIR][i];
       x2 = grid->x[JDIR][j];
       x3 = grid->x[KDIR][k];
 
-      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][k][2 * JBEG - j - 1][i];
+      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][2*KBEG - k - 1][j][i];
 
       if (atan(r / x3) <= 0.2) {
 	GetJetValues(vjet, x1, x2, x3);
@@ -155,8 +155,8 @@ void GetJetValues (double *vjet, double x1, double x2, double x3)
   vjet[VX2] = vr*(x2 / r);
   vjet[VX3] = vz;
 
-  vjet[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -0.75);
-  vjet[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -1.25);
+  vjet[RHO] = g_inputParam[RHO_IN] * pow(R / 0.5, -2.0);
+  vjet[PRS] = g_inputParam[PRESS_IN] * pow(R / 0.5, -2.0*5.0/3.0);
 
   #if NTRACER > 0
   vjet[TRC] = 1.0;
