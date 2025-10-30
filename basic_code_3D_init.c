@@ -62,15 +62,15 @@ void Init (double *v, double x1, double x2, double x3)
     v[VX2] = vr*(x2 / r);
     v[VX3] = vz;
 
-    v[RHO] = g_inputParam[RHO_IN] * pow(R / 0.5, -2.0);
-    v[PRS] = g_inputParam[PRESS_IN] * pow(R / 0.5, -2.0*5.0/3.0);
+    v[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -2.0);
+    v[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -2.0*5.0/3.0);
   } else {
     v[VX1] = 0.0;
     v[VX2] = 0.0;
     v[VX3] = 0.0;
 
-    v[RHO] = g_inputParam[RHO_OUT] * pow(x3 / 0.5, -0.5);
-    v[PRS] = g_inputParam[PRESS_OUT] * pow(x3 / 0.5, -0.5);
+    v[RHO] = g_inputParam[RHO_OUT] * pow(x3 / 1.0, -0.5);
+    v[PRS] = g_inputParam[PRESS_OUT] * pow(x3 / 1.0, -0.5);
   }
 
   #if NTRACER > 0
@@ -155,8 +155,8 @@ void GetJetValues (double *vjet, double x1, double x2, double x3)
   vjet[VX2] = vr*(x2 / r);
   vjet[VX3] = vz;
 
-  vjet[RHO] = g_inputParam[RHO_IN] * pow(R / 0.5, -2.0);
-  vjet[PRS] = g_inputParam[PRESS_IN] * pow(R / 0.5, -2.0*5.0/3.0);
+  vjet[RHO] = g_inputParam[RHO_IN] * pow(R / 1.0, -2.0);
+  vjet[PRS] = g_inputParam[PRESS_IN] * pow(R / 1.0, -2.0*5.0/3.0);
 
   #if NTRACER > 0
   vjet[TRC] = 1.0;
