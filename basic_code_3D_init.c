@@ -59,7 +59,7 @@ void Init (double *v, double x1, double x2, double x3)
   z0 = 1.0;
   R0 = 1.0;
   
-   if (atan2(r / x3) <= 0.2) {
+  if (atan2(r / x3) <= 0.2) {
     
     v[VX1] = sqrt(1 - 1 / pow(lor, 2.0)) * (x1 / R);
     v[VX2] = sqrt(1 - 1 / pow(lor, 2.0)) * (x2 / R);
