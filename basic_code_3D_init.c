@@ -45,9 +45,12 @@ static void GetJetValues (double *vjet, double x1, double x2, double x3);
 /* ********************************************************************* */
 void Init (double *v, double x1, double x2, double x3)
 {
+	
+  const double eps = 1e-20;
   double R, r;
   R = sqrt(x1*x1 + x2*x2 + x3*x3);
-  r = sqrt(x1*x1 + x2*x2); 
+  r = sqrt(x1*x1 + x2*x2);
+  R = fmax(R, eps); r = fmax(r, eps);
   
   double lor;
   lor = 1 / sqrt(1 - pow(g_inputParam[BETA], 2.0));
@@ -56,7 +59,7 @@ void Init (double *v, double x1, double x2, double x3)
   z0 = 1.0;
   R0 = 1.0;
   
-  if (atan(r / x3) <= 0.2) {
+   if (atan2(r / x3) <= 0.2) {
     
     v[VX1] = sqrt(1 - 1 / pow(lor, 2.0)) * (x1 / R);
     v[VX2] = sqrt(1 - 1 / pow(lor, 2.0)) * (x2 / R);
@@ -108,29 +111,21 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *
  *********************************************************************** */
 {
-  int   nv, i, j, k;
-  double  r, z, vjet[NVAR], vout[NVAR];
-  double x1, x2, x3;
-
-  r = sqrt(x1*x1 + x2*x2); 
-
   #if GEOMETRY == CYLINDRICAL || GEOMETRY == CARTESIAN
-
-  if (side == X3_BEG) {
-
-    X3_BEG_LOOP(k, j, i) {
-
-      x1 = grid->x[IDIR][i];
-      x2 = grid->x[JDIR][j];
-      x3 = grid->x[KDIR][k];
-
-      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][2*KBEG - k - 1][j][i];
-
-      if (atan(r / x3) <= 0.2) {
-	GetJetValues(vjet, x1, x2, x3);
-	NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv] + (vjet[nv] - vout[nv])*Profile(x1,x2,x3,nv);
+  if (side == X3_BEG) {    int   nv, i, j, k;
+    double vjet[NVAR], vout[NVAR];    X3_BEG_LOOP(k, j, i) {      double x1 = grid->x[IDIR][i];
+      double x2 = grid->x[JDIR][j];
+      double x3 = grid->x[KDIR][k];      NVAR_LOOP(nv) vout[nv] = d->Vc[nv][2*KBEG - k - 1][j][i];      double r  = sqrt(x1*x1 + x2*x2);
+      double th = atan2(r, fmax(x3, 1e-20));
+      const double th_jet = 0.2;      if (th <= th_jet) {
+        GetJetValues(vjet, x1, x2, x3);
+        NVAR_LOOP(nv){
+          double prof = Profile(x1,x2,x3,nv);
+          d->Vc[nv][k][j][i] = vout[nv] + (vjet[nv] - vout[nv]) * prof;
+        }
+      } else {
+        NVAR_LOOP(nv) d->Vc[nv][k][j][i] = vout[nv];
       }
-
     }
   }
   #endif
@@ -171,24 +166,16 @@ double Profile(double x1, double x2, double x3, int nv)
  *
  *********************************************************************** */
 {
-  double aq;
-  double theta_q;
-  
-  double r;
-  r = sqrt(x1*x1 + x2*x2);
-
-  if (nv == RHO) {
-    theta_q = 0.29;
-    aq = 10.0;
-  }
-  if (nv == PRS) {
-    theta_q = 0.29;
-    aq = 10.0;
-  }
-  if (nv == VX1 || nv == VX2) {
-    theta_q = 0.16;
-    aq = 8.0;
-  }
-
-  return 1.0/cosh(pow(r / (x3 * theta_q), aq));
+  const double eps = 1e-20;
+  double r  = sqrt(x1*x1 + x2*x2);
+  double th = atan2(r, fmax(x3, eps));  double theta_q, aq;  if (nv == RHO) {
+    theta_q = 0.29;  aq = 10.0;
+  } else if (nv == PRS) {
+    theta_q = 0.29;  aq = 10.0;
+  } else if (nv == VX1 || nv == VX2 || nv == VX3) {
+    theta_q = 0.16;  aq =  8.0;
+  } else {
+    return 1.0;
+  }  double arg = pow( th / fmax(theta_q, 1e-12), aq );
+  return 1.0 / cosh(arg);
 }
